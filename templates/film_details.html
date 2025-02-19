@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ film.title }} - CineSphere</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <a href="{{ url_for('index') }}">CinéSphère</a>
+        </div>
+        <div class="nav-links">
+            <a href="{{ url_for('index') }}">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('ma_collection') }}">
+                    <i class="fas fa-film"></i> Ma Collection
+                </a>
+                <a href="{{ url_for('favoris') }}">
+                    <i class="fas fa-heart"></i> Favoris
+                </a>
+                <a href="{{ url_for('tier_list') }}">
+                    <i class="fas fa-list"></i> Tier List
+                </a>
+                <a href="{{ url_for('recherche') }}">
+                    <i class="fas fa-search"></i> Recherche
+                </a>
+                <a href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            {% else %}
+                <a href="{{ url_for('login') }}">
+                    <i class="fas fa-sign-in-alt"></i> Connexion
+                </a>
+                <a href="{{ url_for('register') }}">
+                    <i class="fas fa-user-plus"></i> Inscription
+                </a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="film-details">
+        <div class="film-header" style="background-image: url('https://image.tmdb.org/t/p/original{{ film.backdrop_path }}')">
+            <div class="film-header-content">
+                <div class="film-poster">
+                    {% if film.poster_path %}
+                        <img src="https://image.tmdb.org/t/p/w500{{ film.poster_path }}" alt="{{ film.title }}">
+                    {% else %}
+                        <div class="no-poster">
+                            <i class="fas fa-film"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="film-info">
+                    <h1>{{ film.title }}</h1>
+                    <div class="film-meta">
+                        {% if film.release_date %}
+                            <span class="release-year">{{ film.release_date[:4] }}</span>
+                        {% endif %}
+                        {% if film.runtime %}
+                            <span class="runtime">{{ film.runtime }} min</span>
+                        {% endif %}
+                        {% if film.vote_average %}
+                            <span class="rating">
+                                <i class="fas fa-star"></i>
+                                {{ "%.1f"|format(film.vote_average) }}/10
+                            </span>
+                        {% endif %}
+                    </div>
+                    {% if current_user.is_authenticated %}
+                        <div class="action-buttons">
+                            <button class="btn-action {{ 'active' if user_media and user_media.to_watch }}" 
+                                    onclick="updateStatus({{ film.id }}, 'to_watch')">
+                                <i class="fas fa-clock"></i> À voir
+                            </button>
+                            <button class="btn-action {{ 'active' if user_media and user_media.watched }}" 
+                                    onclick="updateStatus({{ film.id }}, 'watched')">
+                                <i class="fas fa-check"></i> Vu
+                            </button>
+                            <button class="btn-action {{ 'active' if user_media and user_media.favorite }}" 
+                                    onclick="updateStatus({{ film.id }}, 'favorite')">
+                                <i class="fas fa-heart"></i> Favoris
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="film-content">
+            <div class="synopsis">
+                <h2>Synopsis</h2>
+                <p>{{ film.overview }}</p>
+            </div>
+
+            {% if film.credits and film.credits.cast %}
+            <div class="cast">
+                <h2>Acteurs principaux</h2>
+                <div class="cast-list">
+                    {% for actor in film.credits.cast[:8] %}
+                    <div class="cast-item">
+                        {% if actor.profile_path %}
+                            <img src="https://image.tmdb.org/t/p/w185{{ actor.profile_path }}" alt="{{ actor.name }}">
+                        {% else %}
+                            <div class="no-photo">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        {% endif %}
+                        <div class="cast-info">
+                            <h4>{{ actor.name }}</h4>
+                            <p>{{ actor.character }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if film.videos and film.videos.results %}
+            <div class="videos">
+                <h2>Bandes-annonces</h2>
+                <div class="video-list">
+                    {% for video in film.videos.results[:2] if video.type == 'Trailer' %}
+                    <div class="video-item">
+                        <iframe 
+                            src="https://www.youtube.com/embed/{{ video.key }}" 
+                            frameborder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function updateStatus(filmId, status) {
+            fetch('{{ url_for("ajouter_statut") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    tmdb_id: filmId,
+                    media_type: 'movie',
+                    status: status
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Mettre à jour l'interface utilisateur
+                    const toWatchBtn = document.querySelector(`button[onclick="updateStatus(${filmId}, 'to_watch')"]`);
+                    const watchedBtn = document.querySelector(`button[onclick="updateStatus(${filmId}, 'watched')"]`);
+                    const favoriteBtn = document.querySelector(`button[onclick="updateStatus(${filmId}, 'favorite')"]`);
+
+                    // Mettre à jour les états des boutons en fonction de la réponse du serveur
+                    toWatchBtn.classList.toggle('active', data.to_watch);
+                    watchedBtn.classList.toggle('active', data.watched);
+                    favoriteBtn.classList.toggle('active', data.favorite);
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+            });
+        }
+    </script>
+</body>
+</html>

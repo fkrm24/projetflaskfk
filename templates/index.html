@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineSphere - Bienvenue dans l'univers des films</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <a href="{{ url_for('index') }}">CinéSphère</a>
+        </div>
+        <div class="nav-links">
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('index') }}" class="active">
+                    <i class="fas fa-home"></i> Accueil
+                </a>
+                <a href="{{ url_for('ma_collection') }}">
+                    <i class="fas fa-film"></i> Ma Collection
+                </a>
+                <a href="{{ url_for('favoris') }}">
+                    <i class="fas fa-heart"></i> Favoris
+                </a>
+                <a href="{{ url_for('tier_list') }}">
+                    <i class="fas fa-list"></i> Tier List
+                </a>
+                <a href="{{ url_for('recherche') }}">
+                    <i class="fas fa-search"></i> Recherche
+                </a>
+                <a href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            {% else %}
+                <a href="{{ url_for('index') }}" class="active">
+                    <i class="fas fa-home"></i> Accueil
+                </a>
+                <a href="{{ url_for('recherche') }}">
+                    <i class="fas fa-search"></i> Recherche
+                </a>
+                <a href="{{ url_for('login') }}">
+                    <i class="fas fa-sign-in-alt"></i> Connexion
+                </a>
+                <a href="{{ url_for('register') }}">
+                    <i class="fas fa-user-plus"></i> Inscription
+                </a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- Section Welcome -->
+    <section class="welcome">
+        <h2>BIENVENUE DANS L'UNIVERS DU CINÉMA</h2>
+        <p>Plongez dans les films et séries de vos rêves. Découvrez les nouveautés, les meilleurs films et bien plus encore...</p>
+        {% if not current_user.is_authenticated %}
+            <div class="welcome-buttons">
+                <a href="{{ url_for('login') }}" class="btn-primary">Se connecter</a>
+                <a href="{{ url_for('register') }}" class="btn-secondary">S'inscrire</a>
+            </div>
+        {% endif %}
+    </section>
+
+    <div class="main-content">
+        <!-- Section Films Récents -->
+        <section class="recent-films">
+            <h2>Films Récemment Sortis</h2>
+            <button class="scroll-btn prev" onclick="scrollFilms('prev')">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="scroll-btn next" onclick="scrollFilms('next')">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            <div class="film-scroll-container">
+                <div class="film-scroll" id="filmScroll">
+                    {% for film in recent_films %}
+                    <div class="film-item">
+                        <a href="{{ url_for('film_details', film_id=film.id) }}" class="film-link">
+                            {% if film.poster_path %}
+                                <img src="https://image.tmdb.org/t/p/w500{{ film.poster_path }}" alt="{{ film.title }}">
+                            {% else %}
+                                <div class="no-poster">
+                                    <i class="fas fa-film"></i>
+                                </div>
+                            {% endif %}
+                            <div class="film-info">
+                                <h4>{{ film.title }}</h4>
+                                {% if film.release_date %}
+                                    <p class="release-date">{{ film.release_date[:4] }}</p>
+                                {% endif %}
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <!-- Section Films les Mieux Notés -->
+        <section class="top-rated-films">
+            <h3>Films Les Mieux Notés</h3>
+            <div class="film-carousel">
+                {% for film in top_rated_films %}
+                <div class="film-item">
+                    <a href="{{ url_for('film_details', film_id=film.id) }}" class="film-link">
+                        {% if film.poster_path %}
+                            <img src="https://image.tmdb.org/t/p/w500{{ film.poster_path }}" alt="{{ film.title }}">
+                        {% else %}
+                            <div class="no-poster">
+                                <i class="fas fa-film"></i>
+                            </div>
+                        {% endif %}
+                        <div class="film-info">
+                            <h4>{{ film.title }}</h4>
+                            {% if film.release_date %}
+                                <p class="release-date">{{ film.release_date[:4] }}</p>
+                            {% endif %}
+                            {% if film.vote_average %}
+                                <div class="rating">
+                                    <i class="fas fa-star"></i>
+                                    <span>{{ "%.1f"|format(film.vote_average) }}/10</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const filmScroll = document.getElementById('filmScroll');
+        
+        // Fonctions pour les boutons de navigation
+        function scrollFilms(direction) {
+            const scrollAmount = 250; // Largeur d'un film + marge
+            const currentScroll = filmScroll.scrollLeft;
+            
+            if (direction === 'prev') {
+                filmScroll.scrollTo({
+                    left: currentScroll - scrollAmount,
+                    behavior: 'smooth'
+                });
+            } else {
+                filmScroll.scrollTo({
+                    left: currentScroll + scrollAmount,
+                    behavior: 'smooth'
+                });
+            }
+        }
+    </script>
+
+    <script src="{{ url_for('static', filename='scripts.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ma Collection - CineSphere</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <a href="{{ url_for('index') }}">CinéSphère</a>
+        </div>
+        <div class="nav-links">
+            <a href="{{ url_for('index') }}">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="{{ url_for('ma_collection') }}" class="active">
+                <i class="fas fa-film"></i> Ma Collection
+            </a>
+            <a href="{{ url_for('favoris') }}">
+                <i class="fas fa-heart"></i> Favoris
+            </a>
+            <a href="{{ url_for('tier_list') }}">
+                <i class="fas fa-list"></i> Tier List
+            </a>
+            <a href="{{ url_for('recherche') }}">
+                <i class="fas fa-search"></i> Recherche
+            </a>
+            <a href="{{ url_for('logout') }}">
+                <i class="fas fa-sign-out-alt"></i> Déconnexion
+            </a>
+        </div>
+    </nav>
+
+    <div class="collection-container">
+        <!-- Section À Voir -->
+        <section class="media-section">
+            <h2>À Voir</h2>
+            <div class="media-grid">
+                {% for media in a_voir %}
+                <div class="media-card" 
+                     data-id="{{ media.id }}"
+                     data-media-type="{{ media.media_type }}"
+                     data-date-added="{{ media.date_added_str }}"
+                     data-rating="{{ media.rating or 0 }}">
+                    <div class="media-poster">
+                        <img src="https://image.tmdb.org/t/p/w500{{ media.poster_path }}" alt="{{ media.title }}">
+                        <div class="media-overlay">
+                            <button class="btn-vu" onclick="marquerCommeVu({{ media.id }})">
+                                <i class="fas fa-check"></i> Marquer comme vu
+                            </button>
+                        </div>
+                    </div>
+                    <div class="media-info">
+                        <h3>{{ media.title }}</h3>
+                        <div class="media-actions">
+                            <button class="btn-favorite {% if media.favorite %}active{% endif %}" 
+                                    onclick="toggleFavorite({{ media.id }})">
+                                <i class="fas fa-heart"></i>
+                            </button>
+                            <button class="btn-delete" onclick="supprimerMedia({{ media.id }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Section Vu -->
+        <section class="media-section">
+            <h2>Vu</h2>
+            <div class="media-grid">
+                {% for media in vu %}
+                <div class="media-card" 
+                     data-id="{{ media.id }}"
+                     data-media-type="{{ media.media_type }}"
+                     data-date-added="{{ media.date_added_str }}"
+                     data-date-watched="{{ media.date_watched_str }}"
+                     data-rating="{{ media.rating or 0 }}">
+                    <div class="media-poster">
+                        <img src="https://image.tmdb.org/t/p/w500{{ media.poster_path }}" alt="{{ media.title }}">
+                        <div class="media-overlay">
+                            <div class="rating">
+                                {% for i in range(5) %}
+                                <i class="fas fa-star {% if media.rating and i < media.rating %}active{% endif %}"
+                                   onclick="noterMedia({{ media.id }}, {{ i + 1 }})"></i>
+                                {% endfor %}
+                            </div>
+                            <button class="btn-comment" onclick="afficherCommentaire({{ media.id }})">
+                                <i class="fas fa-comment"></i>
+                            </button>
+                            <select class="tier-select" onchange="changerTier({{ media.id }}, this.value)">
+                                <option value="">Tier...</option>
+                                <option value="S" {% if media.tier == 'S' %}selected{% endif %}>S</option>
+                                <option value="A" {% if media.tier == 'A' %}selected{% endif %}>A</option>
+                                <option value="B" {% if media.tier == 'B' %}selected{% endif %}>B</option>
+                                <option value="C" {% if media.tier == 'C' %}selected{% endif %}>C</option>
+                                <option value="D" {% if media.tier == 'D' %}selected{% endif %}>D</option>
+                                <option value="F" {% if media.tier == 'F' %}selected{% endif %}>F</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="media-info">
+                        <h3>{{ media.title }}</h3>
+                        {% if media.date_watched %}
+                        <p class="date-watched">Vu le {{ media.date_watched.strftime('%d/%m/%Y') }}</p>
+                        {% endif %}
+                        <div class="media-actions">
+                            <button class="btn-favorite {% if media.favorite %}active{% endif %}"
+                                    onclick="toggleFavorite({{ media.id }})">
+                                <i class="fas fa-heart"></i>
+                            </button>
+                            <button class="btn-delete" onclick="supprimerMedia({{ media.id }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        {% if media.comment %}
+                        <div class="media-comment">
+                            <p><i class="fas fa-comment"></i> {{ media.comment }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+
+    <!-- Modal pour les commentaires -->
+    <div id="commentModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Ajouter un commentaire</h2>
+            <textarea id="commentText" rows="4" placeholder="Écrivez votre commentaire ici..."></textarea>
+            <div class="modal-buttons">
+                <button onclick="sauvegarderCommentaire()" class="btn-save">Sauvegarder</button>
+                <button onclick="supprimerCommentaire()" class="btn-delete">Supprimer le commentaire</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let mediaIdActuel = null;
+
+        function marquerCommeVu(mediaId) {
+            fetch(`/modifier-media/${mediaId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `status=VU`
+            })
+            .then(response => response.json())
+            .then(data => {
+                location.reload();
+            });
+        }
+
+        function toggleFavorite(mediaId) {
+            const button = document.querySelector(`.media-card[data-id="${mediaId}"] .btn-favorite`);
+            const isFavorite = !button.classList.contains('active');
+            
+            fetch(`/modifier-media/${mediaId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `favorite=${isFavorite}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                button.classList.toggle('active');
+            });
+        }
+
+        function noterMedia(mediaId, note) {
+            fetch(`/modifier-media/${mediaId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `rating=${note}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                const stars = document.querySelectorAll(`.media-card[data-id="${mediaId}"] .fa-star`);
+                stars.forEach((star, index) => {
+                    if (index < note) {
+                        star.classList.add('active');
+                    } else {
+                        star.classList.remove('active');
+                    }
+                });
+            });
+        }
+
+        function changerTier(mediaId, tier) {
+            fetch(`/modifier-media/${mediaId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `tier=${tier}`
+            })
+            .then(response => response.json());
+        }
+
+        // Gestion du modal pour les commentaires
+        const modal = document.getElementById('commentModal');
+        const span = document.getElementsByClassName('close')[0];
+
+        function afficherCommentaire(mediaId) {
+            mediaIdActuel = mediaId;
+            const mediaCard = document.querySelector(`.media-card[data-id="${mediaId}"]`);
+            const commentDiv = mediaCard.querySelector('.media-comment');
+            const commentText = commentDiv ? commentDiv.querySelector('p').textContent.replace(/^\s*\S+\s*/, '') : '';
+            document.getElementById('commentText').value = commentText;
+            modal.style.display = 'block';
+        }
+
+        span.onclick = function() {
+            modal.style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function sauvegarderCommentaire() {
+            const commentaire = document.getElementById('commentText').value;
+            
+            fetch(`/modifier-media/${mediaIdActuel}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `comment=${encodeURIComponent(commentaire)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                modal.style.display = 'none';
+                document.getElementById('commentText').value = '';
+            });
+        }
+
+        function supprimerCommentaire() {
+            fetch(`/modifier-media/${mediaIdActuel}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'comment='
+            })
+            .then(response => response.json())
+            .then(data => {
+                location.reload();
+            });
+            modal.style.display = 'none';
+        }
+
+        function supprimerMedia(mediaId) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce média de votre collection ?')) {
+                fetch(`/supprimer-media/${mediaId}`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>

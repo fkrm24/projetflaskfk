@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tier List - CineSphere</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <a href="{{ url_for('index') }}">CinéSphère</a>
+        </div>
+        <div class="nav-links">
+            <a href="{{ url_for('index') }}">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="{{ url_for('ma_collection') }}">
+                <i class="fas fa-film"></i> Ma Collection
+            </a>
+            <a href="{{ url_for('favoris') }}">
+                <i class="fas fa-heart"></i> Favoris
+            </a>
+            <a href="{{ url_for('tier_list') }}" class="active">
+                <i class="fas fa-list"></i> Tier List
+            </a>
+            <a href="{{ url_for('recherche') }}">
+                <i class="fas fa-search"></i> Recherche
+            </a>
+            <a href="{{ url_for('logout') }}">
+                <i class="fas fa-sign-out-alt"></i> Déconnexion
+            </a>
+        </div>
+    </nav>
+
+    <div class="tier-container">
+        {% for tier, medias in tiers.items() %}
+        <div class="tier-row tier-{{ tier }}" id="tier-{{ tier }}" 
+             ondrop="drop(event)" 
+             ondragover="allowDrop(event)"
+             ondragleave="dragLeave(event)">
+            <div class="tier-label">{{ tier }}</div>
+            <div class="tier-content">
+                {% if medias %}
+                    {% for media in medias %}
+                    <div class="media-item" 
+                         draggable="true"
+                         ondragstart="drag(event)"
+                         data-media-id="{{ media.id }}"
+                         id="media-{{ media.id }}">
+                        <img src="https://image.tmdb.org/t/p/w200{{ media.poster_path }}" 
+                             alt="{{ media.title }}">
+                        <div class="media-title">{{ media.title }}</div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-tier-message">
+                        Glissez et déposez des films/séries ici
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        function allowDrop(ev) {
+            ev.preventDefault();
+            ev.currentTarget.classList.add('drag-over');
+        }
+
+        function dragLeave(ev) {
+            ev.currentTarget.classList.remove('drag-over');
+        }
+
+        function drag(ev) {
+            ev.dataTransfer.setData("mediaId", ev.target.dataset.mediaId);
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            ev.currentTarget.classList.remove('drag-over');
+            
+            const mediaId = ev.dataTransfer.getData("mediaId");
+            const tierRow = ev.currentTarget;
+            const newTier = tierRow.id.split('-')[1];
+            
+            fetch(`/modifier-media/${mediaId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `tier=${newTier}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                const mediaElement = document.getElementById(`media-${mediaId}`);
+                const tierContent = tierRow.querySelector('.tier-content');
+                const emptyMessage = tierContent.querySelector('.empty-tier-message');
+                
+                if (emptyMessage) {
+                    emptyMessage.remove();
+                }
+                
+                tierContent.appendChild(mediaElement);
+            });
+        }
+    </script>
+</body>
+</html>

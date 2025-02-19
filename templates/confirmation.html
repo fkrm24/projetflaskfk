@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmation d'Achat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Confirmation</h1>
+    </header>
+
+    <section class="confirmation">
+        <h2>Bravo ! 🎉</h2>
+        <p>Vous avez acheté : {{ article }}</p>
+        <p>Nom : {{ name }}</p>
+        <p>Adresse : {{ address }}</p>
+        <a href="/">Retourner à l'accueil</a>
+    </section>
+
+    <footer>
+        <p>&copy; 2025 Mode & Photo. Tous droits réservés.</p>
+    </footer>
+</body>
+</html>

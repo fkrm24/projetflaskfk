@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recherche - CineSphere</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <a href="{{ url_for('index') }}">CinéSphère</a>
+        </div>
+        <div class="nav-links">
+            <a href="{{ url_for('index') }}">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="{{ url_for('ma_collection') }}">
+                <i class="fas fa-film"></i> Ma Collection
+            </a>
+            <a href="{{ url_for('favoris') }}">
+                <i class="fas fa-heart"></i> Favoris
+            </a>
+            <a href="{{ url_for('tier_list') }}">
+                <i class="fas fa-list"></i> Tier List
+            </a>
+            <a href="{{ url_for('recherche') }}" class="active">
+                <i class="fas fa-search"></i> Recherche
+            </a>
+            <a href="{{ url_for('logout') }}">
+                <i class="fas fa-sign-out-alt"></i> Déconnexion
+            </a>
+        </div>
+    </nav>
+
+    <div class="search-container">
+        <form action="{{ url_for('recherche') }}" method="get" class="search-form">
+            <input type="text" name="query" placeholder="Rechercher un film..." value="{{ search_query if search_query }}" required>
+            <button type="submit">
+                <i class="fas fa-search"></i>
+            </button>
+        </form>
+    </div>
+
+    {% if search_results %}
+    <div class="search-results">
+        {% for movie in search_results %}
+        <div class="movie-card">
+            {% if movie.poster_path %}
+            <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}" alt="{{ movie.title }}">
+            {% else %}
+            <div class="no-poster">No Poster Available</div>
+            {% endif %}
+            <div class="movie-info">
+                <h3>{{ movie.title }}</h3>
+                <p>{{ movie.release_date[:4] if movie.release_date }}</p>
+                <div class="movie-actions">
+                    <a href="{{ url_for('film_details', film_id=movie.id) }}" class="btn-details">
+                        <i class="fas fa-info-circle"></i> Détails
+                    </a>
+                    <a href="{{ url_for('ajouter_media', media_id=movie.id, media_type='movie') }}" class="btn-add">
+                        <i class="fas fa-plus-circle"></i> Ajouter
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <script>
+        function ajouterMedia(tmdbId, mediaType, button) {
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Ajout en cours...';
+            
+            fetch("{{ url_for('ajouter_media') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `tmdb_id=${tmdbId}&media_type=${mediaType}`
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur lors de l\'ajout à la collection');
+                }
+                return response.json();
+            })
+            .then(data => {
+                button.innerHTML = '<i class="fas fa-check"></i> Ajouté à la collection';
+                button.classList.add('added');
+            })
+            .catch(error => {
+                button.disabled = false;
+                button.innerHTML = 'Ajouter à ma collection';
+                alert('Une erreur est survenue : ' + error.message);
+            });
+        }
+    </script>
+</body>
+</html>
